@@ -1,5 +1,10 @@
 #!/sbin/runscript
 
+description="The script starts the Wake-On-LAN for ethtool"
+description_stopwake="Stop Wake-On-LAN in replacements stop"
+
+opts="stopwake"
+
 depend() {
 	need net
 	after net
@@ -15,21 +20,27 @@ checkconfig() {
 start() {
 	checkconfig || return 1
 	ebegin "Starting Wake-on-LAN"
+	if [[ -z `/usr/sbin/ethtool "${ETH_WOL}" | grep 'Supports Wake-on: g'` ]]; then
+		eerror "Your card does not support Wake-On-LAN"
+		return 1
+	fi
 	/usr/sbin/ethtool -s "${ETH_WOL}" wol g
-	if [ -z "/usr/sbin/ethtool ${ETH_WOL} | grep -i 'Wake-on: d'" ]; then
+	if [[ -n `/usr/sbin/ethtool ${ETH_WOL} | grep 'Wake-on: d'` ]]; then
 		eerror "Failed to enable Wake-on-LAN"
 		return 1
 	fi
 	eend $?
 }
 
-stop() {
-set -x
+stopwake() {
+description="The script starts the Wake-On-LAN for ethtool"
 	ebegin "Stopping Wake-on-LAN"
 	/usr/sbin/ethtool -s "${ETH_WOL}" wol d
-	if [ -z "/usr/sbin/ethtool ${ETH_WOL} | grep -i 'Wake-on: d'" ]; then
+	if [[ -z `/usr/sbin/ethtool ${ETH_WOL} | grep 'Wake-on: d'` ]]; then
 		eerror "Unable to disable the Wake-on-LAN"
 		return 1
+	else
+		mark_service_stopped $RC_SVCNAME
 	fi
 	eend $?
 }
