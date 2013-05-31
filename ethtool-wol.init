@@ -1,0 +1,35 @@
+#!/sbin/runscript
+
+depend() {
+	need net
+	after net
+}
+
+checkconfig() {
+	if [ ! -f /etc/conf.d/ethtool-wol ] ; then
+		eerror "Is not found /etc/conf.d/ethtool-wol configuration file"
+		return 1
+	fi
+}
+
+start() {
+	checkconfig || return 1
+	ebegin "Starting Wake-on-LAN"
+	/usr/sbin/ethtool -s "${ETH_WOL}" wol g
+	if [ -z "/usr/sbin/ethtool ${ETH_WOL} | grep -i 'Wake-on: d'" ]; then
+		eerror "Failed to enable Wake-on-LAN"
+		return 1
+	fi
+	eend $?
+}
+
+stop() {
+set -x
+	ebegin "Stopping Wake-on-LAN"
+	/usr/sbin/ethtool -s "${ETH_WOL}" wol d
+	if [ -z "/usr/sbin/ethtool ${ETH_WOL} | grep -i 'Wake-on: d'" ]; then
+		eerror "Unable to disable the Wake-on-LAN"
+		return 1
+	fi
+	eend $?
+}
